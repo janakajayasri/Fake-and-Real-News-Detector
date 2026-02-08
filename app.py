@@ -1,6 +1,7 @@
 import streamlit as st
 import pickle
 import numpy as np
+import TfidfVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
@@ -49,4 +50,5 @@ if st.button("Predict"):
 # Additional information
 st.write("Model: Logistic Regression with N-grams, Test Accuracy: 0.9779")
 st.write("Model Saved: August 16, 2025, 08:18 PM +0530")
+
 st.write("Note: This is a simulated deployment for the IT41033 Mini-Project by xAI.")
