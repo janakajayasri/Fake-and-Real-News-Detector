@@ -19,6 +19,12 @@ st.set_page_config(
 # ---------------------------------
 # Load Model
 # ---------------------------------
+def load_dataset():
+    fake_news = pd.read_csv('Fake.csv')
+    real_news = pd.read_csv('True.csv')
+
+fake_news = load_dataset()
+real_news = load_dataset()
 try:
     with open("lr_ngram_model.pkl", "rb") as f:
         model = pickle.load(f)
@@ -197,3 +203,4 @@ elif page == "ℹ️ About":
     """)
 
     st.success("✔ Academic-ready application with navigation slides")
+
