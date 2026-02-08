@@ -1,1 +1,1 @@
-# Face-and-Real-News-Detector
+# Fake-and-Real-News-Detector
