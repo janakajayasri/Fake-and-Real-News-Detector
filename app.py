@@ -173,7 +173,7 @@ if page == "🏠 Home":
         st.info("👉 Use the sidebar to navigate through different sections.")
     
     with col2:
-        st.image("https://img.icons8.com/fluency/240/fake-news.png", width=180)
+        st.image("1742547741365.png", width=180)
     
     st.success("✅ Academic Mini Project - IT41033")
 
