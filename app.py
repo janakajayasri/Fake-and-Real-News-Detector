@@ -49,12 +49,31 @@ div[data-testid="stDecoration"] {
 # ---------------------------------
 # DARK MODE TOGGLE
 # ---------------------------------
-dark_mode = st.sidebar.toggle("🌙 Dark Mode")
+dark_mode = st.sidebar.checkbox("🌙 Dark Mode")
 
 if dark_mode:
     st.markdown("""
     <style>
-    .stApp { background-color: #0E1117; color: white; }
+    .stApp {
+        background-color: #0E1117;
+    }
+    
+    .stApp * {
+        color: white !important;
+    }
+    
+    .stTextArea textarea, .stTextInput input {
+        background-color: #2E2E2E !important;
+    }
+    
+    [data-testid="stSidebar"] {
+        background-color: #1E1E1E !important;
+    }
+    
+    .stButton button {
+        background-color: #4CAF50 !important;
+        color: white !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
