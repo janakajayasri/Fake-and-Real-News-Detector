@@ -3,8 +3,8 @@ import pickle
 from preprocess import preprocess_text
 
 # Load model
-model = pickle.load(open("model/model.pkl", "rb"))
-vectorizer = pickle.load(open("model/vectorizer.pkl", "rb"))
+model = pickle.load(open("lr_ngram_model.pkl", "rb"))
+vectorizer = pickle.load(open("vectorizer_ngram.pkl", "rb"))
 
 st.title("📰 Fake News Detection App")
 
