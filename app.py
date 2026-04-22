@@ -314,4 +314,3 @@ elif page == "ℹ️ About":
     """)
 
     st.success("✔ Fully Functional ML Web Application")
-```
