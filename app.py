@@ -481,7 +481,11 @@ if page == "🏠 Home":
         st.markdown('<div class="float-animation">', unsafe_allow_html=True)
         st.info("🎓 **Academic Project**\n\nIT41033 - Mini Project\n\nSLIIT")
         st.metric("Model Performance", "97.79%", "Accuracy")
-    
+        
+        # Animated welcome message
+        if st.button("✨ Click for Welcome Animation ✨"):
+            st.balloons()
+            st.snow()
             st.success("Welcome to Fake News Detection System!")
         st.markdown('</div>', unsafe_allow_html=True)
     
