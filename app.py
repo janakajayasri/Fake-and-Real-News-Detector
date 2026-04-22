@@ -1,3 +1,8 @@
+```python
+# ============================================
+# Fake News Detection System (Final Version)
+# ============================================
+
 import streamlit as st
 import pickle
 import re
@@ -6,200 +11,312 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 import pandas as pd
 import numpy as np
+from reportlab.platypus import SimpleDocTemplate, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+
 # ---------------------------------
-# Page Configuration
+# PAGE CONFIG
 # ---------------------------------
 st.set_page_config(
     page_title="Fake News Detector",
     page_icon="📰",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
+
 # ---------------------------------
-# Download NLTK Data (First Run)
+# CUSTOM CSS
+# ---------------------------------
+st.markdown("""
+<style>
+.stButton button {
+    border-radius: 12px;
+    height: 3em;
+    font-weight: bold;
+    background-color: #4CAF50;
+    color: white;
+}
+.stMetric {
+    text-align: center;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------------------------
+# DARK MODE TOGGLE
+# ---------------------------------
+dark_mode = st.sidebar.toggle("🌙 Dark Mode")
+
+if dark_mode:
+    st.markdown("""
+    <style>
+    .stApp { background-color: #0E1117; color: white; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# ---------------------------------
+# DOWNLOAD NLTK
 # ---------------------------------
 @st.cache_resource
-def download_nltk_data():
+def download_nltk():
     try:
-        nltk.data.find('corpora/stopwords')
-        nltk.data.find('corpora/wordnet')
-    except LookupError:
-        nltk.download('stopwords', quiet=True)
-        nltk.download('wordnet', quiet=True)
-download_nltk_data()
+        nltk.data.find("corpora/stopwords")
+        nltk.data.find("corpora/wordnet")
+    except:
+        nltk.download("stopwords")
+        nltk.download("wordnet")
+
+download_nltk()
+
 # ---------------------------------
-# Load Model & Vectorizer
+# LOAD MODEL
 # ---------------------------------
 @st.cache_resource
 def load_model():
-    try:
-        with open("lr_ngram_model.pkl", "rb") as f:
-            model = pickle.load(f)
-        with open("vectorizer_ngram.pkl", "rb") as f:
-            vectorizer = pickle.load(f)
-        return model, vectorizer
-    except FileNotFoundError:
-        st.error("❌ Model files not found! Please make sure `lr_ngram_model.pkl` and `vectorizer_ngram.pkl` are in the same folder as `app.py`.")
-        st.stop()
+    with open("lr_ngram_model.pkl", "rb") as f:
+        model = pickle.load(f)
+    with open("vectorizer_ngram.pkl", "rb") as f:
+        vectorizer = pickle.load(f)
+    return model, vectorizer
+
 model, vectorizer = load_model()
+
 # ---------------------------------
-# Preprocessing Function
+# NLP PREPROCESSING
 # ---------------------------------
 lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words("english"))
-def preprocess_text(text):
+
+def preprocess(text):
     text = text.lower()
-    text = re.sub(r"[^\w\s]", "", text) # Remove punctuation
-    tokens = [
-        lemmatizer.lemmatize(word)
-        for word in text.split()
-        if word not in stop_words and len(word) > 2
-    ]
-    return " ".join(tokens)
+    text = re.sub(r"[^\w\s]", "", text)
+    return " ".join([
+        lemmatizer.lemmatize(w)
+        for w in text.split()
+        if w not in stop_words and len(w) > 2
+    ])
+
 # ---------------------------------
-# Sidebar Navigation
+# PDF EXPORT FUNCTION
+# ---------------------------------
+def create_pdf(text, result, confidence):
+    doc = SimpleDocTemplate("report.pdf")
+    styles = getSampleStyleSheet()
+
+    content = [
+        Paragraph("Fake News Detection Report", styles['Title']),
+        Paragraph(f"Prediction: {result}", styles['Normal']),
+        Paragraph(f"Confidence: {confidence:.2f}%", styles['Normal']),
+        Paragraph("Analyzed Text:", styles['Heading2']),
+        Paragraph(text, styles['Normal'])
+    ]
+    doc.build(content)
+
+# ---------------------------------
+# SESSION STATE
+# ---------------------------------
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# ---------------------------------
+# SIDEBAR
 # ---------------------------------
 st.sidebar.title("🧭 Navigation")
-page = st.sidebar.radio(
-    "Go to",
-    ["🏠 Home", "🔍 Prediction", "📊 Visualization", "🧠 Model Insights", "ℹ️ About"]
-)
+page = st.sidebar.radio("Go to", [
+    "🏠 Home",
+    "🔍 Prediction",
+    "📊 Visualization",
+    "🧠 Model Insights",
+    "📜 History",
+    "ℹ️ About"
+])
+
+# Sidebar History Preview
+st.sidebar.subheader("🕘 Recent Predictions")
+if st.session_state.history:
+    for h in st.session_state.history[-5:][::-1]:
+        st.sidebar.write(f"{h['result']} ({h['confidence']})")
+else:
+    st.sidebar.write("No predictions yet")
+
 # ---------------------------------
 # HOME PAGE
 # ---------------------------------
 if page == "🏠 Home":
     st.title("📰 Fake News Detection System")
-    st.markdown("### Welcome to the Intelligent Fake News Detector!")
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.markdown("""
-        This application uses **Logistic Regression** with **TF-IDF N-grams** to classify news articles as:
-       
-        - 🟢 **Real News**
-        - 🔴 **Fake News**
-       
-        **Accuracy:** ~97.79%
-        """)
-       
-        st.info("👉 Use the sidebar to navigate through different sections.")
-    with col2:
-        st.image("1742547741365.png", width=150)
-    st.success("✅ Academic Project - IT41033 Mini Project")
+
+    st.markdown("""
+    ### 📌 Project Overview
+    This system detects whether a news article is **Real or Fake** using Machine Learning.
+
+    ### ⚙️ Model Details
+    - Algorithm: Logistic Regression  
+    - Feature Extraction: TF-IDF (N-grams)  
+    - Accuracy: **97.79%**
+
+    ### 🚀 Features
+    - Real-time prediction
+    - Visualization dashboard
+    - Model explainability
+    - PDF report generation
+    """)
+
+    st.success("🎓 Academic Project - IT41033 Mini Project")
+
 # ---------------------------------
 # PREDICTION PAGE
 # ---------------------------------
 elif page == "🔍 Prediction":
     st.title("🔍 Predict News Authenticity")
-    user_input = st.text_area(
-        "Paste the News Article Here:",
-        height=300,
-        placeholder="Enter or paste the full news text..."
-    )
-    col_btn1, col_btn2 = st.columns([1, 3])
-    with col_btn1:
-        predict_btn = st.button("🚀 Predict", type="primary", use_container_width=True)
-    if predict_btn:
-        if user_input.strip() == "":
-            st.warning("⚠️ Please enter some news text to analyze.")
+
+    uploaded_file = st.file_uploader("📂 Upload .txt file", type=["txt"])
+
+    if uploaded_file:
+        user_text = uploaded_file.read().decode("utf-8")
+    else:
+        user_text = st.text_area("Paste News Article", height=250)
+
+    if st.button("🚀 Predict"):
+        if not user_text.strip():
+            st.warning("Enter text first!")
         else:
-            with st.spinner("Analyzing news..."):
-                # Preprocess
-                processed_text = preprocess_text(user_input)
-               
-                # Vectorize
-                X = vectorizer.transform([processed_text])
-               
-                # Predict
-                prediction = model.predict(X)[0]
-                probabilities = model.predict_proba(X)[0]
-               
-                # Results
-                result = "REAL" if prediction == 1 else "FAKE"
-                confidence = probabilities[prediction] * 100
-               
-                # Display Result
-                if prediction == 1:
-                    st.success(f"🟢 **REAL NEWS**")
-                    st.balloons()
+            with st.spinner("Analyzing..."):
+
+                processed = preprocess(user_text)
+                X = vectorizer.transform([processed])
+
+                pred = model.predict(X)[0]
+                probs = model.predict_proba(X)[0]
+
+                result = "REAL" if pred == 1 else "FAKE"
+                confidence = probs[pred] * 100
+
+                # Display result
+                if pred == 1:
+                    st.success("🟢 REAL NEWS")
                 else:
-                    st.error(f"🔴 **FAKE NEWS**")
-               
-                st.metric(label="Confidence", value=f"{confidence:.2f}%")
-                st.progress(float(confidence)/100)
-                # Save to session state for Visualization & Insights
-                st.session_state["probs"] = probabilities
-                st.session_state["text"] = user_input
-                st.session_state["processed"] = processed_text
-                st.session_state["prediction"] = result
+                    st.error("🔴 FAKE NEWS")
+
+                st.metric("Confidence", f"{confidence:.2f}%")
+                st.progress(confidence / 100)
+
+                # Confidence label
+                if confidence > 80:
+                    st.success("High Confidence")
+                elif confidence > 60:
+                    st.warning("Moderate Confidence")
+                else:
+                    st.error("Low Confidence")
+
+                # Save state
+                st.session_state.probs = probs
+                st.session_state.text = user_text
+                st.session_state.result = result
+
+                # Save history
+                st.session_state.history.append({
+                    "text": user_text[:80],
+                    "result": result,
+                    "confidence": f"{confidence:.2f}%"
+                })
+
+                # PDF Export
+                if st.button("📄 Generate PDF Report"):
+                    create_pdf(user_text, result, confidence)
+
+                    with open("report.pdf", "rb") as f:
+                        st.download_button(
+                            "⬇ Download Report",
+                            f,
+                            "FakeNewsReport.pdf"
+                        )
+
 # ---------------------------------
-# VISUALIZATION PAGE
+# VISUALIZATION
 # ---------------------------------
 elif page == "📊 Visualization":
-    st.title("📊 Prediction Visualizations")
+    st.title("📊 Prediction Visualization")
+
     if "probs" not in st.session_state:
-        st.info("Please make a prediction first on the **Prediction** page.")
+        st.info("Run a prediction first")
         st.stop()
-    probs = st.session_state["probs"]
-    text = st.session_state["text"]
-    tab1, tab2 = st.tabs(["📈 Probability Distribution", "📝 Text Statistics"])
-    with tab1:
-        df_prob = pd.DataFrame({
-            "Class": ["Fake", "Real"],
-            "Probability": probs
-        })
-        st.bar_chart(df_prob.set_index("Class"), use_container_width=True)
-    with tab2:
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Word Count", len(text.split()))
-        with col2:
-            st.metric("Character Count", len(text))
-        with col3:
-            st.metric("Predicted As", st.session_state.get("prediction", "—"))
+
+    df = pd.DataFrame({
+        "Class": ["Fake", "Real"],
+        "Probability": st.session_state.probs
+    })
+
+    st.bar_chart(df.set_index("Class"))
+
 # ---------------------------------
-# MODEL INSIGHTS PAGE
+# MODEL INSIGHTS
 # ---------------------------------
 elif page == "🧠 Model Insights":
     st.title("🧠 Model Explainability")
+
     if "text" not in st.session_state:
-        st.info("Run a prediction first to see influential words.")
+        st.info("Run prediction first")
         st.stop()
+
     feature_names = vectorizer.get_feature_names_out()
-    coefficients = model.coef_[0]
-    # Top 15 influential words
-    top_indices = np.argsort(np.abs(coefficients))[-15:]
-    words = feature_names[top_indices]
-    scores = coefficients[top_indices]
-    df_insight = pd.DataFrame({
-        "Word": words,
-        "Impact Score": scores
-    }).sort_values(by="Impact Score", ascending=False)
-    st.subheader("Top 15 Most Influential Words")
-    st.bar_chart(df_insight.set_index("Word")["Impact Score"], use_container_width=True)
+    coef = model.coef_[0]
+
+    top = np.argsort(np.abs(coef))[-15:]
+    df = pd.DataFrame({
+        "Word": feature_names[top],
+        "Impact": coef[top]
+    })
+
+    st.bar_chart(df.set_index("Word"))
+
     st.markdown("""
-    **How to read this chart:**
-    - Positive scores → push prediction toward **Real News**
-    - Negative scores → push prediction toward **Fake News**
+    - Positive → Real News  
+    - Negative → Fake News  
     """)
+
+# ---------------------------------
+# HISTORY PAGE
+# ---------------------------------
+elif page == "📜 History":
+    st.title("📜 Prediction History")
+
+    if not st.session_state.history:
+        st.info("No predictions yet")
+    else:
+        for i, h in enumerate(reversed(st.session_state.history)):
+            st.write(f"**{i+1}. {h['result']} ({h['confidence']})**")
+            st.caption(h["text"])
+
 # ---------------------------------
 # ABOUT PAGE
 # ---------------------------------
 elif page == "ℹ️ About":
     st.title("ℹ️ About This Project")
+
     st.markdown("""
-    ### Fake News Detection System
-    **Project Title:** A Comparative Evaluation of Machine Learning Approaches for Fake News Classification
-    **Team Members:**
-    - W.M.T. Dilmini (ITBIN-2211-0111)
-    - D.M.J. Jaya Sri (ITBIN-2211-0125)
-    - J.M.M. Prabash (ITBIN-2211-0331)
-    - W.R.U. Sethmini (ITBIN-2211-0101)
-    **Best Model:** Logistic Regression with TF-IDF N-grams
-    **Accuracy:** **97.79%**
-    ### Technologies Used
-    - Python + Streamlit
+    ### 📘 Project Title
+    **A Comparative Evaluation of Machine Learning Approaches for Fake News Classification**
+
+    ### 👥 Team Members
+    - W.M.T. Dilmini  
+    - D.M.J. Jaya Sri  
+    - J.M.M. Prabash  
+    - W.R.U. Sethmini  
+
+    ### 🧠 Technologies Used
+    - Python
+    - Streamlit
     - Scikit-learn
-    - NLTK (Lemmatization + Stopwords)
+    - NLTK
     - Pandas & NumPy
+
+    ### 📊 Model Performance
+    - Accuracy: **97.79%**
+    - Model: Logistic Regression
+    - Features: TF-IDF (N-grams)
+
+    ### 🎯 Objective
+    To build an intelligent system capable of identifying fake news using machine learning techniques.
     """)
-    st.success("✔ Fully functional Streamlit web application for academic submission")
+
+    st.success("✔ Fully Functional ML Web Application")
+```
