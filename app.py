@@ -1,3 +1,8 @@
+```python
+# ============================================
+# Fake News Detection System (Final - Stable)
+# ============================================
+
 import streamlit as st
 import pickle
 import re
@@ -8,6 +13,7 @@ import pandas as pd
 import numpy as np
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
+import os
 
 # ---------------------------------
 # PAGE CONFIG
@@ -19,25 +25,20 @@ st.set_page_config(
 )
 
 # ---------------------------------
-# CUSTOM CSS
+# CSS
 # ---------------------------------
 st.markdown("""
 <style>
 .stButton button {
-    border-radius: 12px;
+    border-radius: 10px;
     height: 3em;
     font-weight: bold;
-    background-color: #4CAF50;
-    color: white;
-}
-.stMetric {
-    text-align: center;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------------
-# DARK MODE TOGGLE
+# DARK MODE
 # ---------------------------------
 dark_mode = st.sidebar.toggle("🌙 Dark Mode")
 
@@ -49,34 +50,43 @@ if dark_mode:
     """, unsafe_allow_html=True)
 
 # ---------------------------------
-# DOWNLOAD NLTK
+# NLTK DOWNLOAD (SAFE)
 # ---------------------------------
 @st.cache_resource
-def download_nltk():
+def load_nltk():
     try:
         nltk.data.find("corpora/stopwords")
+    except:
+        nltk.download("stopwords", quiet=True)
+
+    try:
         nltk.data.find("corpora/wordnet")
     except:
-        nltk.download("stopwords")
-        nltk.download("wordnet")
+        nltk.download("wordnet", quiet=True)
 
-download_nltk()
+load_nltk()
 
 # ---------------------------------
-# LOAD MODEL
+# LOAD MODEL (SAFE)
 # ---------------------------------
 @st.cache_resource
 def load_model():
+    if not os.path.exists("lr_ngram_model.pkl") or not os.path.exists("vectorizer_ngram.pkl"):
+        st.error("❌ Model files missing! Put .pkl files in same folder.")
+        st.stop()
+
     with open("lr_ngram_model.pkl", "rb") as f:
         model = pickle.load(f)
+
     with open("vectorizer_ngram.pkl", "rb") as f:
         vectorizer = pickle.load(f)
+
     return model, vectorizer
 
 model, vectorizer = load_model()
 
 # ---------------------------------
-# NLP PREPROCESSING
+# NLP
 # ---------------------------------
 lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words("english"))
@@ -84,30 +94,34 @@ stop_words = set(stopwords.words("english"))
 def preprocess(text):
     text = text.lower()
     text = re.sub(r"[^\w\s]", "", text)
-    return " ".join([
+    words = [
         lemmatizer.lemmatize(w)
         for w in text.split()
         if w not in stop_words and len(w) > 2
-    ])
+    ]
+    return " ".join(words)
 
 # ---------------------------------
-# PDF EXPORT FUNCTION
+# PDF FUNCTION
 # ---------------------------------
 def create_pdf(text, result, confidence):
-    doc = SimpleDocTemplate("report.pdf")
+    file_path = "report.pdf"
+    doc = SimpleDocTemplate(file_path)
     styles = getSampleStyleSheet()
 
     content = [
         Paragraph("Fake News Detection Report", styles['Title']),
         Paragraph(f"Prediction: {result}", styles['Normal']),
         Paragraph(f"Confidence: {confidence:.2f}%", styles['Normal']),
-        Paragraph("Analyzed Text:", styles['Heading2']),
+        Paragraph("Text:", styles['Heading2']),
         Paragraph(text, styles['Normal'])
     ]
+
     doc.build(content)
+    return file_path
 
 # ---------------------------------
-# SESSION STATE
+# SESSION STATE INIT
 # ---------------------------------
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -116,6 +130,7 @@ if "history" not in st.session_state:
 # SIDEBAR
 # ---------------------------------
 st.sidebar.title("🧭 Navigation")
+
 page = st.sidebar.radio("Go to", [
     "🏠 Home",
     "🔍 Prediction",
@@ -125,42 +140,24 @@ page = st.sidebar.radio("Go to", [
     "ℹ️ About"
 ])
 
-# Sidebar History Preview
+# Sidebar history preview
 st.sidebar.subheader("🕘 Recent Predictions")
-if st.session_state.history:
-    for h in st.session_state.history[-5:][::-1]:
-        st.sidebar.write(f"{h['result']} ({h['confidence']})")
-else:
-    st.sidebar.write("No predictions yet")
+for item in st.session_state.history[-5:][::-1]:
+    st.sidebar.write(f"{item['result']} ({item['confidence']})")
 
 # ---------------------------------
-# HOME PAGE
+# HOME
 # ---------------------------------
 if page == "🏠 Home":
     st.title("📰 Fake News Detection System")
-
-    st.markdown("""
-    ### 📌 Project Overview
-    This system detects whether a news article is **Real or Fake** using Machine Learning.
-
-    ### ⚙️ Model Details
-    - Algorithm: Logistic Regression  
-    - Feature Extraction: TF-IDF (N-grams)  
-    - Accuracy: **97.79%**
-
-    ### 🚀 Features
-    - Real-time prediction
-    - Visualization dashboard
-    - Model explainability
-    - PDF report generation
-    """)
-
-    st.success("🎓 Academic Project - IT41033 Mini Project")
+    st.write("Detect Fake vs Real News using Machine Learning")
+    st.success("Accuracy: ~97.79%")
 
 # ---------------------------------
-# PREDICTION PAGE
+# PREDICTION
 # ---------------------------------
 elif page == "🔍 Prediction":
+
     st.title("🔍 Predict News Authenticity")
 
     uploaded_file = st.file_uploader("📂 Upload .txt file", type=["txt"])
@@ -168,11 +165,12 @@ elif page == "🔍 Prediction":
     if uploaded_file:
         user_text = uploaded_file.read().decode("utf-8")
     else:
-        user_text = st.text_area("Paste News Article", height=250)
+        user_text = st.text_area("Paste News Text", height=250)
 
     if st.button("🚀 Predict"):
+
         if not user_text.strip():
-            st.warning("Enter text first!")
+            st.warning("⚠️ Enter text first")
         else:
             with st.spinner("Analyzing..."):
 
@@ -185,54 +183,54 @@ elif page == "🔍 Prediction":
                 result = "REAL" if pred == 1 else "FAKE"
                 confidence = probs[pred] * 100
 
-                # Display result
-                if pred == 1:
-                    st.success("🟢 REAL NEWS")
-                else:
-                    st.error("🔴 FAKE NEWS")
-
-                st.metric("Confidence", f"{confidence:.2f}%")
-                st.progress(confidence / 100)
-
-                # Confidence label
-                if confidence > 80:
-                    st.success("High Confidence")
-                elif confidence > 60:
-                    st.warning("Moderate Confidence")
-                else:
-                    st.error("Low Confidence")
-
-                # Save state
                 st.session_state.probs = probs
-                st.session_state.text = user_text
                 st.session_state.result = result
+                st.session_state.text = user_text
+                st.session_state.confidence = confidence
 
                 # Save history
                 st.session_state.history.append({
-                    "text": user_text[:80],
                     "result": result,
                     "confidence": f"{confidence:.2f}%"
                 })
 
-                # PDF Export
-                if st.button("📄 Generate PDF Report"):
-                    create_pdf(user_text, result, confidence)
+    # SHOW RESULT (AFTER RUN)
+    if "result" in st.session_state:
 
-                    with open("report.pdf", "rb") as f:
-                        st.download_button(
-                            "⬇ Download Report",
-                            f,
-                            "FakeNewsReport.pdf"
-                        )
+        result = st.session_state.result
+        confidence = st.session_state.confidence
+
+        if result == "REAL":
+            st.success("🟢 REAL NEWS")
+        else:
+            st.error("🔴 FAKE NEWS")
+
+        st.metric("Confidence", f"{confidence:.2f}%")
+        st.progress(confidence / 100)
+
+        # PDF BUTTON (FIXED)
+        pdf_path = create_pdf(
+            st.session_state.text,
+            result,
+            confidence
+        )
+
+        with open(pdf_path, "rb") as f:
+            st.download_button(
+                "📄 Download PDF Report",
+                f,
+                file_name="FakeNewsReport.pdf"
+            )
 
 # ---------------------------------
 # VISUALIZATION
 # ---------------------------------
 elif page == "📊 Visualization":
-    st.title("📊 Prediction Visualization")
+
+    st.title("📊 Visualization")
 
     if "probs" not in st.session_state:
-        st.info("Run a prediction first")
+        st.info("Run prediction first")
         st.stop()
 
     df = pd.DataFrame({
@@ -246,7 +244,8 @@ elif page == "📊 Visualization":
 # MODEL INSIGHTS
 # ---------------------------------
 elif page == "🧠 Model Insights":
-    st.title("🧠 Model Explainability")
+
+    st.title("🧠 Model Insights")
 
     if "text" not in st.session_state:
         st.info("Run prediction first")
@@ -255,62 +254,44 @@ elif page == "🧠 Model Insights":
     feature_names = vectorizer.get_feature_names_out()
     coef = model.coef_[0]
 
-    top = np.argsort(np.abs(coef))[-15:]
+    top_idx = np.argsort(np.abs(coef))[-15:]
+
     df = pd.DataFrame({
-        "Word": feature_names[top],
-        "Impact": coef[top]
+        "Word": feature_names[top_idx],
+        "Impact": coef[top_idx]
     })
 
     st.bar_chart(df.set_index("Word"))
 
-    st.markdown("""
-    - Positive → Real News  
-    - Negative → Fake News  
-    """)
-
 # ---------------------------------
-# HISTORY PAGE
+# HISTORY
 # ---------------------------------
 elif page == "📜 History":
+
     st.title("📜 Prediction History")
 
     if not st.session_state.history:
         st.info("No predictions yet")
     else:
         for i, h in enumerate(reversed(st.session_state.history)):
-            st.write(f"**{i+1}. {h['result']} ({h['confidence']})**")
-            st.caption(h["text"])
+            st.write(f"{i+1}. {h['result']} ({h['confidence']})")
 
 # ---------------------------------
-# ABOUT PAGE
+# ABOUT
 # ---------------------------------
 elif page == "ℹ️ About":
-    st.title("ℹ️ About This Project")
+
+    st.title("ℹ️ About Project")
 
     st.markdown("""
-    ### 📘 Project Title
-    **A Comparative Evaluation of Machine Learning Approaches for Fake News Classification**
+    **Project:** Fake News Detection System  
+    **Model:** Logistic Regression + TF-IDF  
+    **Accuracy:** 97.79%  
 
-    ### 👥 Team Members
-    - W.M.T. Dilmini  
-    - D.M.J. Jaya Sri  
-    - J.M.M. Prabash  
-    - W.R.U. Sethmini  
-
-    ### 🧠 Technologies Used
+    Built using:
     - Python
     - Streamlit
     - Scikit-learn
     - NLTK
-    - Pandas & NumPy
-
-    ### 📊 Model Performance
-    - Accuracy: **97.79%**
-    - Model: Logistic Regression
-    - Features: TF-IDF (N-grams)
-
-    ### 🎯 Objective
-    To build an intelligent system capable of identifying fake news using machine learning techniques.
     """)
-
-    st.success("✔ Fully Functional ML Web Application")
+```
