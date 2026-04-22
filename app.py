@@ -1,4 +1,4 @@
-```python
+
 # ============================================
 # Fake News Detection System (Final - Stable)
 # ============================================
@@ -294,4 +294,3 @@ elif page == "ℹ️ About":
     - Scikit-learn
     - NLTK
     """)
-```
