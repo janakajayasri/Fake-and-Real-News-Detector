@@ -49,33 +49,34 @@ div[data-testid="stDecoration"] {
 # ---------------------------------
 # DARK MODE TOGGLE
 # ---------------------------------
-dark_mode = st.sidebar.checkbox("🌙 Dark Mode")
+import streamlit as st
 
-if dark_mode:
+st.set_page_config(page_title="Dark Mode Test", layout="wide")
+
+# Simple dark mode
+dark = st.sidebar.button("🌙 Dark Mode")
+
+if dark:
     st.markdown("""
     <style>
     .stApp {
         background-color: #0E1117;
     }
-    
-    .stApp * {
+    .stApp *:not(img):not(svg) {
+        background-color: #0E1117 !important;
         color: white !important;
     }
-    
-    .stTextArea textarea, .stTextInput input {
-        background-color: #2E2E2E !important;
-    }
-    
     [data-testid="stSidebar"] {
         background-color: #1E1E1E !important;
     }
-    
-    .stButton button {
-        background-color: #4CAF50 !important;
-        color: white !important;
-    }
     </style>
     """, unsafe_allow_html=True)
+
+st.title("Dark Mode Test")
+st.write("This text should be white on dark background")
+
+if dark:
+    st.success("Dark mode is active!")
 
 # ---------------------------------
 # DOWNLOAD NLTK
