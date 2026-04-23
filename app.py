@@ -479,7 +479,7 @@ if page == "🏠 Home":
     
     with col2:
         st.markdown('<div class="float-animation">', unsafe_allow_html=True)
-        st.info("🎓 **Academic Project**\n\nIT41033 - Mini Project\n\nSLIIT")
+        st.info("🎓Final Year Project\n\nHorizon Campus")
         st.metric("Model Performance", "97.79%", "Accuracy")
         
         # Animated welcome message
