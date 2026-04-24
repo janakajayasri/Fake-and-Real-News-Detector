@@ -463,7 +463,7 @@ if page == "🏠 Home":
         ### ⚙️ Model Details
         - **Algorithm:** Logistic Regression  
         - **Feature Extraction:** TF-IDF (N-grams)  
-        - **Accuracy:** 97.79%
+        - **Accuracy:** 98.59%
         - **Precision:** 97.5%
         - **Recall:** 98.0%
         
@@ -480,7 +480,7 @@ if page == "🏠 Home":
     with col2:
         st.markdown('<div class="float-animation">', unsafe_allow_html=True)
         st.info("🎓Final Year Project\n\nHorizon Campus")
-        st.metric("Model Performance", "97.79%", "Accuracy")
+        st.metric("Model Performance", "98.59%", "Accuracy")
         
         # Animated welcome message
         if st.button("✨ Click for Welcome Animation ✨"):
